@@ -77,11 +77,11 @@ Apache Spark is an open source parallel processing framework for large-scale dat
 
 Spark uses a "divide and conquer" approach to processing large volumes of data quickly by distributing the work across multiple computers
 
-In Microsoft Fabric, each workspace is assigned a Spark cluster. An administrator can manage settings for the Spark cluster in the Data Engineering/Science section of the workspace settings.\
+In Microsoft Fabric, each **workspace** is assigned a **Spark cluster**. An administrator can manage settings for the Spark cluster in the Data Engineering/Science section of the workspace settings.
 
 - Node Family: The type of virtual machines used for the Spark cluster nodes. Memory optimized nodes provide optimal performance.
 - Runtime version: The version of Spark (and dependent subcomponents) to be run on the cluster.
-- Spark Properties: Spark-specific settings that you want to enable or override in your cluster. 
+- Spark Properties: Spark-specific settings that you want to enable or override in your cluster.
 
 Spark Notebook
 
@@ -112,10 +112,160 @@ Benefits:
 ## Create delta table
 
 From dataframe
-```
+
+```python
 # Load a file into a dataframe
 df = spark.read.load('Files/mydata.csv', format='csv', header=True)
 
 # Save the dataframe as a delta table
 df.write.format("delta").saveAsTable("mytable")
+```
+
+The data for the table is saved in **Parquet** files in the **Tables** storage area in the lakehouse, along with a **_delta_log** folder
+
+*external* tables
+
+```python
+df.write.format("delta").saveAsTable("myexternaltable", path="Files/myexternaltable")
+
+df.write.format("delta").saveAsTable("myexternaltable", path="abfss://my_store_url..../myexternaltable")
+```
+
+*DeltaTableBuilder* API
+
+```python
+from delta.tables import *
+
+DeltaTable.create(spark) \
+  .tableName("products") \
+  .addColumn("Productid", "INT") \
+  .addColumn("ProductName", "STRING") \
+  .addColumn("Category", "STRING") \
+  .addColumn("Price", "FLOAT") \
+  .execute()
+```
+
+Spark SQL
+
+```SQL
+%%sql
+CREATE TABLE salesorders
+(
+    Orderid INT NOT NULL,
+    OrderDate TIMESTAMP NOT NULL,
+    CustomerName STRING,
+    SalesTotal FLOAT NOT NULL
+)
+USING DELTA
+```
+
+Save data in delta format
+
+```python
+delta_path = "Files/mydatatable"
+df.write.format("delta").save(delta_path)
+
+new_df.write.format("delta").mode("overwrite").save(delta_path)
+```
+
+## Work with delta tables
+
+Spark SQL
+
+```python
+spark.sql("INSERT INTO products VALUES (1, 'Widget', 'Accessories', 2.99)")
+```
+
+or 
+
+```sql
+%%sql
+
+UPDATE products
+SET Price = 2.49 WHERE ProductId = 1;
+```
+
+Delta API
+
+```python
+from delta.tables import *
+from pyspark.sql.functions import *
+
+# Create a DeltaTable object
+delta_path = "Files/mytable"
+deltaTable = DeltaTable.forPath(spark, delta_path)
+
+# Update the table (reduce price of accessories by 10%)
+deltaTable.update(
+    condition = "Category == 'Accessories'",
+    set = { "Price": "Price * 0.9" })
+```
+
+*time travel*
+
+```sql
+%%sql
+
+DESCRIBE HISTORY products
+
+DESCRIBE HISTORY 'Files/mytable'
+```
+
+or
+
+```python
+df = spark.read.format("delta").option("versionAsOf", 0).load(delta_path)
+```
+
+## Streaming Data
+
+Spark Structured 
+
+Streaming with delta tables
+
+streaming source: A stream is created that reads data from the table folder as new data is appended.
+
+```python
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+# Load a streaming dataframe from the Delta Table
+stream_df = spark.readStream.format("delta") \
+    .option("ignoreChanges", "true") \
+    .load("Files/delta/internetorders")
+
+# Now you can process the streaming data in the dataframe
+# for example, show it:
+stream_df.show()
+```
+
+streaming sink: New data is added to the stream whenever a file is added to the folder.
+
+```python
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+# Create a stream that reads JSON data from a folder
+inputPath = 'Files/streamingdata/'
+jsonSchema = StructType([
+    StructField("device", StringType(), False),
+    StructField("status", StringType(), False)
+])
+stream_df = spark.readStream.schema(jsonSchema).option("maxFilesPerTrigger", 1).json(inputPath)
+
+# Write the stream to a delta table
+table_path = 'Files/delta/devicetable'
+checkpoint_path = 'Files/delta/checkpoint'
+delta_stream = stream_df.writeStream.format("delta").option("checkpointLocation", checkpoint_path).start(table_path)
+```
+
+```sql
+%%sql
+
+CREATE TABLE DeviceTable
+USING DELTA
+LOCATION 'Files/delta/devicetable';
+
+SELECT device, status
+FROM DeviceTable;
 ```
