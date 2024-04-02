@@ -269,3 +269,17 @@ LOCATION 'Files/delta/devicetable';
 SELECT device, status
 FROM DeviceTable;
 ```
+
+# Data Factory
+
+## Pipeline templates
+
+![alt text](/images/image-3.png)
+
+## Monitor Pipelines
+**Validate**
+![alt text](/images/image-4.png)
+
+History
+![alt text](/images/image-5.png)
+
