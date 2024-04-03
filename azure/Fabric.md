@@ -283,3 +283,167 @@ FROM DeviceTable;
 History
 ![alt text](/images/image-5.png)
 
+# Dataflows Gen2
+
+## Dataflow
+
+Dataflows are a type of cloud-based ETL (Extract, Transform, Load) tool for building and executing scalable data transformation processes.
+
+## Dataflow Gen2
+
+ataflows Gen2 is to provide an easy, reusable way to perform ETL tasks using Power Query Online.
+
+Benefits:
+
+- **Extend data with consistent data**, such as a standard date dimension table.
+- **Allow** self-service users **access** to a subset of data warehouse separately.
+- **Optimize performance** with dataflows, which enable extracting data once for reuse, reducing data refresh time for slower sources.
+- **Simplify data source** complexity by only exposing dataflows to larger analyst groups.
+- Ensure **consistency** and **quality** of data by enabling users to clean and transform data before loading it to a destination.
+- **Simplify data integration** by providing a low-code interface that ingests data from various sources.
+
+Limitations:
+
+- Not a replacement for a data warehouse.
+- Row-level security isn't supported.
+- Fabric capacity workspace is required.
+
+![alt text](/images/image-6.png)
+
+1. Power Query ribbon
+
+- Filter and Sort rows
+- Pivot and Unpivot
+- Merge and Append queries
+- Split and Conditional split
+- Replace values and Remove duplicates
+- Add, Rename, Reorder, or Delete columns
+- Rank and Percentage calculator
+- Top N and Bottom N
+
+2. Queries pane
+
+The Queries pane shows you the different data sources (**queries**). Rename, duplicate, reference, and enable staging are some of the options available.
+
+1. Diagram view
+
+The Diagram View allows you to visually see how the data sources are connected and the different applied transformations.
+
+4. Data Preview pane
+
+The Data Preview pane only shows a subset of data to allow you to see which transformations you should make and how they affect the data.
+
+5. Query Settings pane
+
+The Query Settings pane primarily includes Applied Steps. Each transformation you do is tied to a step, some of which are automatically applied when you connect the data source. Depending on the complexity of the transformations, you may have several applied steps for each query.
+
+## Integrate Dataflows Gen2 and Pipelines
+
+Use a dataflow for data ingestion and transformation, and landing into a Lakehouse using dataflows. Then incorporate the dataflow into a pipeline to orchestrate extra activities.
+
+# Ingest data with Spark and Fabric notebooks
+
+## Connect to data
+
+By default, Fabric notebooks use PySpark
+
+## Connect to external sources
+
+```python
+# Azure Blob Storage access info
+blob_account_name = "azureopendatastorage"
+blob_container_name = "nyctlc"
+blob_relative_path = "yellow"
+blob_sas_token = "sv=2022-11-02&ss=bfqt&srt=c&sp=rwdlacupiytfx&se=2023-09-08T23:50:02Z&st=2023-09-08T15:50:02Z&spr=https&sig=abcdefg123456" 
+
+# Construct the path for connection
+wasbs_path = f'wasbs://{blob_container_name}@{blob_account_name}.blob.core.windows.net/{blob_relative_path}?{blob_sas_token}'
+
+# Read parquet data from Azure Blob Storage path
+blob_df = spark.read.parquet(wasbs_path)
+
+# Show the Azure Blob DataFrame
+blob_df.show()
+```
+
+## Configure alternate authentication
+
+```python
+# Placeholders for Azure SQL Database connection info
+server_name = "your_server_name.database.windows.net"
+port_number = 1433  # Default port number for SQL Server
+database_name = "your_database_name"
+table_name = "YourTableName" # Database table
+client_id = "YOUR_CLIENT_ID"  # Service principal client ID
+client_secret = "YOUR_CLIENT_SECRET"  # Service principal client secret
+tenant_id = "YOUR_TENANT_ID"  # Azure Active Directory tenant ID
+
+
+# Build the Azure SQL Database JDBC URL with Service Principal (Active Directory Integrated)
+jdbc_url = f"jdbc:sqlserver://{server_name}:{port_number};database={database_name};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;Authentication=ActiveDirectoryIntegrated"
+
+# Properties for the JDBC connection
+properties = {
+    "user": client_id, 
+    "password": client_secret,  
+    "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+    "tenantId": tenant_id  
+}
+
+# Read entire table from Azure SQL Database using AAD Integrated authentication
+sql_df = spark.read.jdbc(url=jdbc_url, table=table_name, properties=properties)
+
+# Show the Azure SQL DataFrame
+sql_df.show()
+```
+
+## Write data into a lakehouse
+
+### Write to a file
+
+```python
+# Write DataFrame to Parquet file format
+parquet_output_path = "your_folder/your_file_name"
+df.write.mode("overwrite").parquet(parquet_output_path)
+print(f"DataFrame has been written to Parquet file: {parquet_output_path}")
+
+# Write DataFrame to Delta table
+delta_table_name = "your_delta_table_name"
+df.write.format("delta").mode("overwrite").saveAsTable(delta_table_name)
+print(f"DataFrame has been written to Delta table: {delta_table_name}")
+```
+
+### Write to a Delta table 
+
+```python
+# Use format and save to load as a Delta table
+table_name = "nyctaxi_raw"
+filtered_df.write.mode("overwrite").format("delta").save(f"Tables/{table_name}")
+
+# Confirm load as Delta table
+print(f"Spark DataFrame saved to Delta table: {table_name}")
+```
+
+### Optimize Delta table writes
+
+**V-Order** enables *faster* and *more efficient* reads by various compute engines, such as Power BI, SQL, and Spark.V-order applies special sorting, distribution, encoding, and compression on parquet files at write-time.
+
+**Optimize write** improves the *performance* and *reliability* by **reducing** the number of files written and increasing their size. It's useful for scenarios where the Delta tables have suboptimal or nonstandard file sizes, or where the extra write latency is tolerable.
+
+
+
+```python
+**# Enable V-Order 
+spark.conf.set("spark.sql.parquet.vorder.enabled", "true")
+
+# Enable automatic Delta optimized write
+spark.conf.set("spark.microsoft.delta.optimizeWrite.enabled", "true"*)*
+``` 
+
+## Consider uses for ingested data
+
+When you load data, it's a good idea to do some **basic cleaning** like removing duplicates, handling errors, converting null values, and getting rid of empty entries to ensure data quality and consistency.
+
+Data scientists usually prefer fewer changes so they can explore wide tables. They would likely want access to the raw ingested data. Fabric's Data Wrangler then let's them explore the data and generate transformation code for their specific needs.
+
+Whereas Power BI data analysts may require more transformation and modeling before they can use the data. While Power BI can transform data, starting with well-prepared data allows analysts to develop reports and insights more efficiently.
