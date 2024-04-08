@@ -467,7 +467,7 @@ Gold Layer: aggregate data, enrich with external information
 Data transformation:
 
 - Altering structure/content
-- Use dataflow/notebook
+- Use dataflow/notebook (Notebooks are a more suitable tool for data transformation with big data, Dataflow suitable for small semantic model)
 
 Data orchestation:
 
@@ -491,8 +491,24 @@ Data orchestation:
 
 The SQL analytics endpoint in Fabric enables you to write queries, manage the semantic model, and query data using the new visual query experience.
 
+Tailoring medallion layers to different needs allows you to optimize data processing and access for specific use cases.
+
 ## Manage lakehouse
 
 ### Secure
 
+Secure your lakehouse by ensuring that only authorized users can access data. In Fabric, you can do this by setting permissions at the **workspace** or **item** level.
+
+- Security and Access Considerations: Define who needs access at each layer - interact with sensitive data.
+- Gold Layer Access Control: emphasizing the importance of minimal permissions.
+- Silver Layer Utilization: balancing flexibility and security.
+- Bronze Layer Access Control: emphasizing the importance of minimal permissions.
+
 ### CI/CD
+
+Git integration in Fabric.
+
+CI/CD is crucial at the gold layer of a lakehouse because it ensures that high-quality, validated, and reliable data is available for consumption.
+
+-> enhances data accuracy, accelerates decision-making, and supports data-driven initiatives effectively.
+
