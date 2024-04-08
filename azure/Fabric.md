@@ -447,3 +447,49 @@ When you load data, it's a good idea to do some **basic cleaning** like removing
 Data scientists usually prefer fewer changes so they can explore wide tables. They would likely want access to the raw ingested data. Fabric's Data Wrangler then let's them explore the data and generate transformation code for their specific needs.
 
 Whereas Power BI data analysts may require more transformation and modeling before they can use the data. While Power BI can transform data, starting with well-prepared data allows analysts to develop reports and insights more efficiently.
+
+# Medallion architecture design
+
+## Introduction
+
+The medallion architecture brings **structure** and **efficiency** to your lakehouse environment.
+
+## Medallion architecture
+
+![alt text](/images/image-7.png)
+
+Bronze Layer: Raw Data
+
+Silver Layer: Validate and refine data (remove nulls, deduplicate...)
+
+Gold Layer: aggregate data, enrich with external information
+
+Data transformation:
+
+- Altering structure/content
+- Use dataflow/notebook
+
+Data orchestation:
+
+- Coordination/management
+- Pipelines: series of steps
+
+## Implementation
+
+- Set up the foundation
+- Design architecture
+![alt text](/images/image-8.png)
+- Ingest data into bronze
+- Transform data and load to silver
+- Generate gold layer
+- Enable downstream` consumption
+
+## Query and report data
+
+The SQL analytics endpoint in Fabric enables you to write queries, manage the semantic model, and query data using the new visual query experience.
+
+## Manage lakehouse
+
+### Secure
+
+### CI/CD
