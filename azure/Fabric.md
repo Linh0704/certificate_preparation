@@ -482,7 +482,10 @@ Data orchestation:
 - Ingest data into bronze
 - Transform data and load to silver
 - Generate gold layer
-- Enable downstream` consumption
+  - using dimensional model
+  - can have multiple gold layers for different audiences/domains
+  - Data Warehouse as gold layer
+- Enable downstream consumption
 
 ## Query and report data
 
