@@ -512,3 +512,103 @@ CI/CD is crucial at the gold layer of a lakehouse because it ensures that high-q
 
 -> enhances data accuracy, accelerates decision-making, and supports data-driven initiatives effectively.
 
+# Data warehouses in Fabric
+
+## Introduction
+
+Fabric's datawarehouse:
+
+- centralizes/organize data to unified view
+- provies full SQL semantics
+- desgined to use by the whole team
+
+## Fundamental
+
+- Data ingestion
+- Data storage
+- Data processing
+- Data analysis and delivery
+
+Support T-SQL capabilities, fully managed, scalable
+
+DE build relational layer top of data - DA use T-SQL and Power BI to explore the data.
+
+### Design data warehouse
+
+Tables organized in a schema that is optimized for a multidimensional modeling
+
+#### Tables
+
+Fact tables
+
+- numerical data
+- large number of rows
+- primary source of analysis
+
+Dimensions tables
+
+- descriptive information
+- small number of rows
+- provide context for the data in fact table
+- have *surrogate key* - number key and *alternate key* - specific instance of a entity (customer id)
+
+Types:
+
+- time dimensions: enables DA to aggregate data over temporal intervals
+- slowly changing dimensions: enable users to analyze and understand changes to data overtime
+
+#### Data warehouse schema designs
+
+dimension data is *de-normalized* to **reduce duplication**
+
+Normally: start schema
+
+![alt text](/images/image-9.png)
+
+Lots of levels/information shared by different things: snowflake schema
+
+![alt text](/images/image-10.png)
+
+## Understand data warehouse
+
+Lakehouse: collection of files, folders, tables, shortcuts...
+
+Fabric: lakeview -> Lakehouse (read tables, use sql analytics endpoint)
+
+### Describe a data warehouse
+
+Create your data warehouse directly in Fabric from the **create hub** or within a **workspace**.
+
+### Ingest data
+
+#### Create tables
+
+```sql
+COPY INTO dbo.Region 
+FROM 'https://mystorageaccountxxx.blob.core.windows.net/private/Region.csv' WITH ( 
+            FILE_TYPE = 'CSV'
+            ,CREDENTIAL = ( 
+                IDENTITY = 'Shared Access Signature'
+                , SECRET = 'xxx'
+                )
+            ,FIRSTROW = 2
+            )
+GO
+```
+
+#### Table considerations
+
+Staging tables: temporary tables used for data cleansing, data transformations, data validation
+
+Data warehouse tasks in order:
+
+- Ingest new data to data lake
+- Load data from files to staging tables
+- Load dimension tables from dimension data
+- Load fact tables
+- Perform post-load optimization
+
+## Query and transform data
+
+### SQL query editor
+
